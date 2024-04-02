@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, status
 from pydantic import BaseModel
+from geojson_pydantic import Feature
 
 from app.db import lifespan
 
@@ -33,6 +34,33 @@ async def get_waterbody(wb_id: int, request: Request) -> Waterbody:
                 )
             uid, wb_id, area_m2 = waterbody
             return Waterbody(uid=uid, wb_id=wb_id, area_m2=area_m2)
+
+
+@app.get("/waterbody/{wb_id}/geometry")
+async def get_waterbody_geometry(wb_id: int, request: Request) -> Feature:
+    """
+    Gets the geometry (geojson) of a specific waterbody based on its id
+    """
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT "
+                "jsonb_build_object( "
+                "    'type', 'Feature', "
+                "    'id', wb_id, "
+                "    'geometry', ST_AsGeoJSON(geometry)::jsonb, "
+                "    'properties', jsonb_build_object('id', wb_id) "
+                ") as geojson "
+                "FROM waterbodies_historical_extent "
+                f"WHERE wb_id={wb_id}"
+            )
+            waterbody_geom = await cur.fetchone()
+            if waterbody_geom is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Waterbody not found"
+                )
+            return waterbody_geom[0]
 
 
 class CheckConnectionResult(BaseModel):
