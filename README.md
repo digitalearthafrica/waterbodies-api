@@ -35,7 +35,7 @@ The application should then be accessible on localhost:8080. A simple connection
 
 FastAPI automatically generates documentation for request handlers added to the application, this can be accessed from the following link.
 
-    [`http://localhost:8080/docs`](http://localhost:8080/docs) 
+[`http://localhost:8080/docs`](http://localhost:8080/docs)
 
 When using the docker compose based development environment code within the `./server/app` folder is mounted into the server container. The compose yaml also includes the `--reload` uvicorn command like arguement which means that any change to the Python source code will automatically restart the application with updated code (this is shown in docker logs). You do not need to rebuild, or stop/start the server container during development.
 
@@ -46,5 +46,7 @@ Chages to the requirements.txt file will require the application to be rebuilt (
 
 The local `./data/db` folder is mounted into the db-postgres container as `/data`. Database dumps should be placed in this folder.
 
-TODO: notes on restoring db dump
+The following command can be used to restore a postgres database dump.
+
+    docker compose exec db-postgres /bin/bash -c "psql -U postgres -h localhost -d waterbodies < /data/waterbodies_dump.psql"
 
