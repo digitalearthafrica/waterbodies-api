@@ -1,0 +1,5 @@
+# ignore everything in this folder (so we don't get large dumps committed)
+*
+# don't ignore this file or the readme
+!.gitignore
+!README.md
