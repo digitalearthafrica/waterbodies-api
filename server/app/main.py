@@ -89,13 +89,32 @@ async def get_waterbody_observations_csv(
     """
     Returns the water body observations over time in a CSV format
     """
-    # Stream the reponse data, this means we don't need to keep a full copy
-    # of the water observations in memeory, and we can start writing the
-    # response as soon as the first row is read from the DB
-    return StreamingResponse(
-        query_waterbody_observations(request, wb_id, start_date, end_date),
-        media_type='text/csv'
-    )
+    # First we do a quick check if the waterbody exists, and if not send
+    # a 404 response. If it does exist then run the query to get the
+    # waterbody observations. This allows the client to determine if the
+    # waterbody exists and has no data (in the query date range), or it
+    # doesn't exist at all.
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT wb_id "
+                "FROM waterbodies_historical_extent "
+                f"WHERE wb_id={wb_id}"
+            )
+            waterbody = await cur.fetchone()
+            if waterbody is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Waterbody not found"
+                )
+
+            # Stream the reponse data, this means we don't need to keep a full copy
+            # of the water observations in memeory, and we can start writing the
+            # response as soon as the first row is read from the DB
+            return StreamingResponse(
+                query_waterbody_observations(request, wb_id, start_date, end_date),
+                media_type='text/csv'
+            )
 
 
 @app.get("/waterbody/{wb_id}/geometry")
