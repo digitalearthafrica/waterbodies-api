@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -51,12 +52,16 @@ async def get_waterbody(wb_id: int, request: Request) -> Waterbody:
 
 
 async def query_waterbody_observations(
-        request: Request, wb_id: int
+        request: Request,
+        wb_id: int,
+        start_date: date,
+        end_date: date
     ) -> AsyncGenerator[str, None]:
     """ Async generator that yields a string (formatted as a CSV line) for each
     row returned by the SQL query as the query is being run.
     """
     # TODO - updated this query to something useful
+    # TODO - include start and end dates in query
     query = (
         "SELECT date, px_wet "
         "FROM waterbody_observations AS wo "
@@ -76,8 +81,10 @@ async def query_waterbody_observations(
 
 @app.get("/waterbody/{wb_id}/observations/csv")
 async def get_waterbody_observations_csv(
+        request: Request,
         wb_id: int,
-        request: Request
+        start_date: date = date.min,
+        end_date: date = date.max
     ) -> StreamingResponse:
     """
     Returns the water body observations over time in a CSV format
@@ -86,7 +93,7 @@ async def get_waterbody_observations_csv(
     # of the water observations in memeory, and we can start writing the
     # response as soon as the first row is read from the DB
     return StreamingResponse(
-        query_waterbody_observations(request, wb_id),
+        query_waterbody_observations(request, wb_id, start_date, end_date),
         media_type='text/csv'
     )
 
