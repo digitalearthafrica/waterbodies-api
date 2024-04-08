@@ -67,7 +67,8 @@ async def query_waterbody_observations(
         "FROM waterbody_observations AS wo "
         "JOIN waterbodies_historical_extent AS whe "
         "    ON wo.uid = whe.uid "
-        f"WHERE wb_id={wb_id}"
+        f"WHERE wb_id={wb_id} "
+        f"AND date BETWEEN '{start_date}' AND '{end_date}'"
     )
     async with request.app.async_pool.connection() as conn:
         async with conn.cursor() as cursor:
