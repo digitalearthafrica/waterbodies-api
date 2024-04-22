@@ -60,6 +60,8 @@ async def query_waterbody_observations(
     """ Async generator that yields a string (formatted as a CSV line) for each
     row returned by the SQL query as the query is being run.
     """
+    # Before running the query, yield the csv header
+    yield "date,px_wet\n"
     # TODO - updated this query to something useful
     # TODO - include start and end dates in query
     query = (
