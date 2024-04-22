@@ -60,6 +60,8 @@ async def query_waterbody_observations(
     """ Async generator that yields a string (formatted as a CSV line) for each
     row returned by the SQL query as the query is being run.
     """
+    # Before running the query, yield the csv header
+    yield "date,px_wet\n"
     # TODO - updated this query to something useful
     # TODO - include start and end dates in query
     query = (
@@ -67,7 +69,8 @@ async def query_waterbody_observations(
         "FROM waterbody_observations AS wo "
         "JOIN waterbodies_historical_extent AS whe "
         "    ON wo.uid = whe.uid "
-        f"WHERE wb_id={wb_id}"
+        f"WHERE wb_id={wb_id} "
+        f"AND date BETWEEN '{start_date}' AND '{end_date}'"
     )
     async with request.app.async_pool.connection() as conn:
         async with conn.cursor() as cursor:
