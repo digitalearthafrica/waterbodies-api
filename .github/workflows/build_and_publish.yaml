@@ -1,0 +1,57 @@
+name: Build and Push Docker Image
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+  release:
+    types: [published]
+
+env:
+  IMAGE_NAME: digitalearthafrica/waterbodies-api
+
+jobs:
+  build-and-push:
+    name: Build Docker image and push to Docker Hub
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DEAFRICA_DOCKER_PASSWORD }}
+
+    - name: Get Git release version
+      id: get_git_release
+      run: |
+        git fetch --tags
+        GIT_RELEASE_VERSION=$(git tag --sort version:refname | tail -1)
+        if [ "${GIT_RELEASE_VERSION}" == "" ] ; then
+          GIT_RELEASE_VERSION="v0.0.1"
+        fi
+        echo "git_release=${GIT_RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+    - name: Build Docker image
+      run: |
+        cd server
+        docker build -t ${IMAGE_NAME} .
+
+    - name: Tag & push Docker image
+      env:
+        GIT_RELEASE: ${{ steps.get_git_release.outputs.git_release }}
+        GIT_EVENT_NAME:  ${{ github.event_name }}
+        PR_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        echo "Latest release: ${GIT_RELEASE}"
+        COMMIT_SHA=$(echo ${PR_COMMIT_SHA:0:7})
+        if [ ${GIT_EVENT_NAME} == "pull_request" ] ; then
+          NEW_TAG="${GIT_RELEASE}-${COMMIT_SHA}"
+        else
+          NEW_TAG="${GIT_RELEASE}"
+        fi
+        docker tag ${IMAGE_NAME} ${IMAGE_NAME}:${NEW_TAG}
+        docker push ${IMAGE_NAME}:${NEW_TAG}
