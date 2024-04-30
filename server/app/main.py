@@ -61,7 +61,7 @@ async def query_waterbody_observations(
     row returned by the SQL query as the query is being run.
     """
     # Before running the query, yield the csv header
-    yield "date,area_wet,pc_wet,area_dry,pc_dry,area_invalid,pc_invalid,observed_area,observed_area_proportion\n"
+    yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
 
     # Perform the query
     query = (
