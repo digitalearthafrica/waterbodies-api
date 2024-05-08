@@ -74,7 +74,7 @@ async def query_waterbody_observations(
         "        SUM(wbo.area_wet_m2 + wbo.area_dry_m2 + wbo.area_invalid_m2) AS observed_area,"
         "        wb.area_m2"
         "    FROM "
-        "        waterbodies_observations_test AS wbo "
+        "        waterbodies_observations AS wbo "
         "    JOIN "
         "        waterbodies_historical_extent AS wb ON wbo.uid = wb.uid "
         "    WHERE "
