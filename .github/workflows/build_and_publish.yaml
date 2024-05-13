@@ -41,6 +41,7 @@ jobs:
         docker build -t ${IMAGE_NAME} .
 
     - name: Tag & push Docker image
+      id: tag_push_docker_image
       env:
         GIT_RELEASE: ${{ steps.get_git_release.outputs.git_release }}
         GIT_EVENT_NAME:  ${{ github.event_name }}
@@ -55,20 +56,21 @@ jobs:
         fi
         docker tag ${IMAGE_NAME} ${IMAGE_NAME}:${NEW_TAG}
         docker push ${IMAGE_NAME}:${NEW_TAG}
+        echo "::set-output name=NEW_TAG::${NEW_TAG}"
+        echo "::set-output name=IMAGE_NAME::${IMAGE_NAME}"
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+    - name: Configure AWS Credentials and Login to Amazon ECR
+      id: aws-ecr-login
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region ${{ secrets.AWS_REGION }}
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-    - name: Tag Docker image
-      run: docker tag ${IMAGE_NAME}:${NEW_TAG} 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
-
-    - name: Push Docker image to ECR
-      run: docker push 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
+    - name: Tag and Push Docker image to ECR
+      env: 
+        NEW_TAG: ${{ steps.tag_push_docker_image.outputs.NEW_TAG }}
+        IMAGE_NAME: ${{ steps.tag_push_docker_image.IMAGE_NAME }}
+      run: |
+        docker tag ${IMAGE_NAME}:${NEW_TAG} 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
+        docker push 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
