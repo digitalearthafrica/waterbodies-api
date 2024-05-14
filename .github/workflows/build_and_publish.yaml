@@ -9,6 +9,8 @@ on:
 
 env:
   IMAGE_NAME: digitalearthafrica/waterbodies-api
+  AWS_REGION: af-south-1
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
 jobs:
   build-and-push:
@@ -67,11 +69,11 @@ jobs:
     
     - name: Login to Amazon ECR
       id: login-ecr
-      run: aws ecr get-login-password --region af-south-1 | docker login --username AWS --password-stdin 543785577597.dkr.ecr.af-south-1.amazonaws.com
+      run: aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
     - name: Tag and Push Docker image to ECR
       env: 
         NEW_TAG: ${{ steps.tag_push_docker_image.outputs.NEW_TAG }}
       run: |
-        docker tag ${IMAGE_NAME}:${NEW_TAG} 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
-        docker push 543785577597.dkr.ecr.af-south-1.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
+        docker tag ${IMAGE_NAME}:${NEW_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
+        docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
