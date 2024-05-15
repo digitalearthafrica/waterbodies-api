@@ -9,6 +9,8 @@ on:
 
 env:
   IMAGE_NAME: digitalearthafrica/waterbodies-api
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_PDS_ACCOUNT_ID }}
 
 jobs:
   build-and-push:
@@ -41,6 +43,7 @@ jobs:
         docker build -t ${IMAGE_NAME} .
 
     - name: Tag & push Docker image
+      id: tag_push_docker_image
       env:
         GIT_RELEASE: ${{ steps.get_git_release.outputs.git_release }}
         GIT_EVENT_NAME:  ${{ github.event_name }}
@@ -55,3 +58,22 @@ jobs:
         fi
         docker tag ${IMAGE_NAME} ${IMAGE_NAME}:${NEW_TAG}
         docker push ${IMAGE_NAME}:${NEW_TAG}
+        echo "::set-output name=NEW_TAG::${NEW_TAG}"
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with: 
+        aws-access-key-id: ${{ secrets.DEAFRICA_PDS_ECR_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.DEAFRICA_PDS_ECR_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      run: aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+    - name: Tag and Push Docker image to ECR
+      env: 
+        NEW_TAG: ${{ steps.tag_push_docker_image.outputs.NEW_TAG }}
+      run: |
+        docker tag ${IMAGE_NAME}:${NEW_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
+        docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${NEW_TAG}
