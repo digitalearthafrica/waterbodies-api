@@ -10,7 +10,7 @@ on:
 env:
   IMAGE_NAME: digitalearthafrica/waterbodies-api
   AWS_REGION: af-south-1
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_PDS_ACCOUNT_ID }}
 
 jobs:
   build-and-push:
@@ -24,7 +24,7 @@ jobs:
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DEAFRICA_DOCKER_USERNAME }}
+        username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DEAFRICA_DOCKER_PASSWORD }}
 
     - name: Get Git release version
@@ -63,9 +63,9 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with: 
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-access-key-id: ${{ secrets.DEAFRICA_PDS_ECR_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.DEAFRICA_PDS_ECR_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
     
     - name: Login to Amazon ECR
       id: login-ecr
