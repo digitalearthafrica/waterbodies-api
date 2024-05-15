@@ -9,7 +9,7 @@ on:
 
 env:
   IMAGE_NAME: digitalearthafrica/waterbodies-api
-  AWS_REGION: af-south-1
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_PDS_ACCOUNT_ID }}
 
 jobs:
