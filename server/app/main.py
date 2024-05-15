@@ -104,8 +104,7 @@ async def query_waterbody_observations(
     async with request.app.async_pool.connection() as conn:
         async with conn.cursor() as cursor:
             async for wb_observation in cursor.stream(query):
-                # TODO - any changes to the query above need to be reflected
-                # here
+                # TODO - any changes to the query above need to be reflected here
                 obs_date, obs_area_wet, obs_pc_wet, obs_area_dry, obs_pc_dry, obs_area_invalid, obs_pc_invalid, obs_area, obs_area_proportion = wb_observation
                 csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_area_wet},{100*obs_pc_wet:.2f},{obs_area_dry},{100*obs_pc_dry:.2f},{obs_area_invalid},{100*obs_pc_invalid:.2f},{obs_area},{100*obs_area_proportion:.2f}\n"
                 yield csv_line
