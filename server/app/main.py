@@ -54,8 +54,8 @@ async def get_waterbody(wb_id: int, request: Request) -> Waterbody:
 async def query_waterbody_observations(
         request: Request,
         wb_id: int,
-        start_date: date = date.min,
-        end_date: date = date.max
+        start_date: date,
+        end_date: date
     ) -> AsyncGenerator[str, None]:
     """ Async generator that yields a string (formatted as a CSV line) for each
     row returned by the SQL query as the query is being run.
@@ -117,8 +117,8 @@ async def query_waterbody_observations(
 async def get_waterbody_observations_csv(
         request: Request,
         wb_id: int,
-        start_date: date,
-        end_date: date
+        start_date: date = date.min,
+        end_date: date = date.max
     ) -> StreamingResponse:
     """
     Returns the water body observations over time in a CSV format
