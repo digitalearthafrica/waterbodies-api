@@ -63,6 +63,9 @@ async def query_waterbody_observations(
     # Before running the query, yield the csv header
     yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
 
+    start_date_str = start_date.strftime("%04Y-%m-%d")
+    end_date_str = end_date.strftime("%04Y-%m-%d")
+
     # Perform the query
     query = (
         "WITH waterbody_stats AS ("
@@ -79,7 +82,7 @@ async def query_waterbody_observations(
         "        waterbodies_historical_extent AS wb ON wbo.uid = wb.uid "
         "    WHERE "
         f"        wb.wb_id = {wb_id}"
-        f"        AND wbo.date BETWEEN '{start_date}' AND '{end_date}'"
+        f"        AND wbo.date BETWEEN '{start_date_str}' AND '{end_date_str}'"
         "    GROUP BY "
         "        wbo.date, wb.area_m2"
         "),"
