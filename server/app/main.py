@@ -54,17 +54,15 @@ async def get_waterbody(wb_id: int, request: Request) -> Waterbody:
 async def query_waterbody_observations(
         request: Request,
         wb_id: int,
-        start_date: date,
-        end_date: date
+        start_date: date = date.min,
+        end_date: date = date.max
     ) -> AsyncGenerator[str, None]:
     """ Async generator that yields a string (formatted as a CSV line) for each
     row returned by the SQL query as the query is being run.
     """
     # Before running the query, yield the csv header
-    yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
-
-    start_date_str = start_date.strftime("%04Y-%m-%d")
-    end_date_str = end_date.strftime("%04Y-%m-%d")
+    #yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
+    yield "start_date, end_date, request_url"
 
     # Perform the query
     query = (
@@ -82,7 +80,7 @@ async def query_waterbody_observations(
         "        waterbodies_historical_extent AS wb ON wbo.uid = wb.uid "
         "    WHERE "
         f"        wb.wb_id = {wb_id}"
-        f"        AND wbo.date BETWEEN '{start_date_str}' AND '{end_date_str}'"
+        f"        AND wbo.date BETWEEN '{start_date}' AND '{end_date}'"
         "    GROUP BY "
         "        wbo.date, wb.area_m2"
         "),"
@@ -111,7 +109,7 @@ async def query_waterbody_observations(
                 # here
                 #obs_date, obs_area_wet, obs_pc_wet, obs_area_dry, obs_pc_dry, obs_area_invalid, obs_pc_invalid, obs_area, obs_area_proportion = wb_observation
                 #csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_area_wet},{100*obs_pc_wet:.2f},{obs_area_dry},{100*obs_pc_dry:.2f},{obs_area_invalid},{100*obs_pc_invalid:.2f},{obs_area},{100*obs_area_proportion:.2f}\n"
-                csv_line = f"{start_date},{end_date},{start_date_str},{end_date_str}\n"
+                csv_line = f"{start_date},{end_date},{request.url}\n"
                 yield csv_line
 
 
