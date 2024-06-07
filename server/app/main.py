@@ -62,7 +62,7 @@ async def query_waterbody_observations(
     """
     # Before running the query, yield the csv header
     #yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
-    yield "start_date, end_date, request_url"
+    yield "start_date, end_date, request_url, request_params\n"
 
     # Perform the query
     query = (
@@ -109,7 +109,7 @@ async def query_waterbody_observations(
                 # here
                 #obs_date, obs_area_wet, obs_pc_wet, obs_area_dry, obs_pc_dry, obs_area_invalid, obs_pc_invalid, obs_area, obs_area_proportion = wb_observation
                 #csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_area_wet},{100*obs_pc_wet:.2f},{obs_area_dry},{100*obs_pc_dry:.2f},{obs_area_invalid},{100*obs_pc_invalid:.2f},{obs_area},{100*obs_area_proportion:.2f}\n"
-                csv_line = f"{start_date},{end_date},{request.url}\n"
+                csv_line = f"{start_date},{end_date},{request.url},{request.query_params}\n"
                 yield csv_line
 
 
