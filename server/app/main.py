@@ -119,8 +119,8 @@ async def query_waterbody_observations(
 async def get_waterbody_observations_csv(
         request: Request,
         wb_id: int,
-        start_date: date = date.min,
-        end_date: date = date.max
+        start_date: date,
+        end_date: date
     ) -> StreamingResponse:
     """
     Returns the water body observations over time in a CSV format
