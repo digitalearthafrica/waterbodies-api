@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import AsyncGenerator
 
 from app.db import lifespan
+from app.queries import waterbody_observations_query
 
 
 app = FastAPI(lifespan=lifespan)
@@ -64,50 +65,14 @@ async def query_waterbody_observations(
     yield "date,area_wet_m2,percent_wet,area_dry_m2,percent_dry,area_invalid_m2,percent_invalid,area_observed_m2,percent_observed\n"
 
     # Perform the query
-    query = (
-        "WITH waterbody_stats AS ("
-        "    SELECT"
-        "        wbo.date,"
-        "        SUM(wbo.area_wet_m2) AS area_wet,"
-        "        SUM(wbo.area_dry_m2) AS area_dry,"
-        "        SUM(wbo.area_invalid_m2) AS area_invalid,"
-        "        SUM(wbo.area_wet_m2 + wbo.area_dry_m2 + wbo.area_invalid_m2) AS observed_area,"
-        "        wb.area_m2"
-        "    FROM "
-        "        waterbodies_observations AS wbo "
-        "    JOIN "
-        "        waterbodies_historical_extent AS wb ON wbo.uid = wb.uid "
-        "    WHERE "
-        f"        wb.wb_id = {wb_id}"
-        f"        AND wbo.date BETWEEN '{start_date}' AND '{end_date}'"
-        "    GROUP BY "
-        "        wbo.date, wb.area_m2"
-        "),"
-        "filtered_stats AS ("
-        "    SELECT"
-        "        date,"
-        "        area_wet,"
-        "        area_wet / area_m2 AS pc_wet,"
-        "        area_dry,"
-        "        area_dry / area_m2 AS pc_dry,"
-        "        area_invalid,"
-        "        area_invalid / area_m2 AS pc_invalid,"
-        "        observed_area,"
-        "        observed_area / area_m2 AS observed_area_proportion"
-        "    FROM "
-        "        waterbody_stats"
-        "    WHERE"
-        "        observed_area / area_m2 > 0.85 AND area_invalid / area_m2 < 0.1"
-        ")"
-        "SELECT * FROM filtered_stats"
-    )
+    query = waterbody_observations_query(wb_id, start_date, end_date)
+
     async with request.app.async_pool.connection() as conn:
         async with conn.cursor() as cursor:
             async for wb_observation in cursor.stream(query):
-                # TODO - any changes to the query above need to be reflected
-                # here
-                obs_date, obs_area_wet, obs_pc_wet, obs_area_dry, obs_pc_dry, obs_area_invalid, obs_pc_invalid, obs_area, obs_area_proportion = wb_observation
-                csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_area_wet},{100*obs_pc_wet:.2f},{obs_area_dry},{100*obs_pc_dry:.2f},{obs_area_invalid},{100*obs_pc_invalid:.2f},{obs_area},{100*obs_area_proportion:.2f}\n"
+                # TODO - any changes to the query above need to be reflected here
+                obs_date, obs_area_wet, obs_pc_wet, obs_area_dry, obs_pc_dry, obs_area_invalid, obs_pc_invalid, obs_area, obs_pc = wb_observation
+                csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_area_wet},{obs_pc_wet:.2f},{obs_area_dry},{obs_pc_dry:.2f},{obs_area_invalid},{obs_pc_invalid:.2f},{obs_area},{obs_pc:.2f}\n"
                 yield csv_line
 
 
