@@ -153,7 +153,7 @@ async def query_bbox(
     """
 
     # Before running the query, yield the csv header
-    yield "wb_id\n"
+    yield "wb_id,geometry\n"
 
     query = bbox_query(minx, miny, maxx, maxy)
 
@@ -161,8 +161,8 @@ async def query_bbox(
         async with conn.cursor() as cursor:
             async for bbox_geoms in cursor.stream(query):
                 # TODO - any changes to the query above need to be reflected here
-                wb_id = bbox_geoms
-                csv_line = f"{wb_id}\n"
+                wb_id, geometry = bbox_geoms
+                csv_line = f"{wb_id},{geometry}\n"
                 yield csv_line
 
 

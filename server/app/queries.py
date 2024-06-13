@@ -84,7 +84,8 @@ def bbox_query(minx: float, miny: float, maxx: float, maxy: float) -> str:
 
     query = f"""
         SELECT 
-            wb_id
+            wb_id,
+            ST_AsTWKB(geometry)
         FROM 
             waterbodies_historical_extent
         WHERE
