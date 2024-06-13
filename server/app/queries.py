@@ -79,3 +79,17 @@ def waterbody_observations_query(wb_id: int, start_date: date, end_date: date) -
         SELECT * from filtered_stats ORDER BY date
     """
     return query
+
+def bbox_query(minx: float, miny: float, maxx: float, maxy: float) -> str:
+
+    query = f"""
+        SELECT 
+            wb_id,
+            geometry
+        FROM 
+            waterbodies_historical_extent
+        WHERE
+            geometry && ST_MakeEnvelope({minx}, {miny}, {maxx}, {maxy}, 4326)
+    """
+
+    return query
