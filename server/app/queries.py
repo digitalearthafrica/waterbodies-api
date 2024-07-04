@@ -74,7 +74,7 @@ def waterbody_observations_query(wb_id: int, start_date: date, end_date: date) -
             FROM 
                 waterbody_stats_pc 
             WHERE 
-                percent_observed > 85 AND percent_invalid < 100
+                percent_observed > 85 AND percent_invalid < 5
         )
         SELECT * from filtered_stats ORDER BY date
     """
