@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import AsyncGenerator
 
 from app.db import lifespan
-from app.queries import waterbody_observations_query
+from app.queries import waterbody_observations_query, bbox_query
 
 
 app = FastAPI(lifespan=lifespan)
@@ -139,6 +139,54 @@ async def get_waterbody_geometry(wb_id: int, request: Request) -> Feature:
                     detail="Waterbody not found"
                 )
             return waterbody_geom[0]
+
+
+async def query_bbox(
+        request: Request,
+        minx: float,
+        miny: float,
+        maxx: float,
+        maxy: float
+    ) -> AsyncGenerator[str, None]:
+    """ Async generator that yields a string (formatted as a CSV line) for each
+    row returned by the SQL query as the query is being run.
+    """
+
+    # Before running the query, yield the csv header
+    yield "wb_id,geometry\n"
+
+    query = bbox_query(minx, miny, maxx, maxy)
+
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            async for bbox_geoms in cursor.stream(query):
+                # TODO - any changes to the query above need to be reflected here
+                wb_id, geometry = bbox_geoms
+                csv_line = f"{wb_id},{geometry}\n"
+                yield csv_line
+
+
+@app.get("/waterbody/geometries/csv")
+async def get_waterbody_geometries_csv(
+        request: Request,
+        minx: float = -14,
+        miny: float = 15,
+        maxx: float = -13,
+        maxy: float = 16
+    ) -> StreamingResponse:
+    """
+    Returns water body geometries in a CSV format
+    """
+
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            # Stream the reponse data, this means we don't need to keep a full copy
+            # of the water observations in memeory, and we can start writing the
+            # response as soon as the first row is read from the DB
+            return StreamingResponse(
+                query_bbox(request, minx, miny, maxx, maxy),
+                media_type='text/csv'
+            )
 
 
 class CheckConnectionResult(BaseModel):
