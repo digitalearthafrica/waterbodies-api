@@ -22,13 +22,21 @@ def waterbody_observations_query(wb_id: int, start_date: date, end_date: date) -
     """
 
     query = f"""
-        WITH wb AS (
+        WITH uids_from_wb_id AS (
+            SELECT
+                uid
+            FROM
+                waterbodies_historical_extent
+            WHERE
+                wb_id = {wb_id}
+        ),
+        wb AS (
             SELECT 
                 uid, 
                 area_m2 AS actual_area_m2 
             FROM 
                 waterbodies_historical_extent
-            WHERE wb_id = {wb_id}
+            WHERE uid = (SELECT uid FROM uids_from_wb_id LIMIT 1)
         ),
         wbo AS (
             SELECT 
