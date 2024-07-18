@@ -29,8 +29,8 @@ def waterbody_observations_query(wb_id: int, start_date: date, end_date: date) -
                 waterbodies_historical_extent
             WHERE
                 wb_id = {wb_id}
-        )
-        WITH wb AS (
+        ),
+        wb AS (
             SELECT 
                 uid, 
                 area_m2 AS actual_area_m2 
