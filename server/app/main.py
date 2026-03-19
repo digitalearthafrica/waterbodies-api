@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import AsyncGenerator
 
 from app.db import lifespan
-from app.queries import waterbody_observations_query
+from app.queries import waterbody_observations_query, water_quality_summary_query
 
 
 app = FastAPI(lifespan=lifespan)
@@ -50,6 +50,68 @@ async def get_waterbody(wb_id: int, request: Request) -> Waterbody:
                 )
             uid, wb_id, area_m2 = waterbody
             return Waterbody(uid=uid, wb_id=wb_id, area_m2=area_m2)
+
+
+async def query_water_quality_summaries(
+        request: Request,
+        wb_id: int,
+        start_date: date,
+        end_date: date
+    ) -> AsyncGenerator[str, None]:
+    """ Async generator that yields a string (formatted as a CSV line) for each
+    row returned by the SQL query as the query is being run.
+    """
+    # Before running the query, yield the csv header
+    yield "date,hue_q0_1,hue_q0_2,hue_q0_3,hue_q0_4,hue_q0_5,hue_q0_6,hue_q0_7,hue_q0_8,hue_q0_9,owt_q0_1,owt_q0_2,owt_q0_3,owt_q0_4,owt_q0_5,owt_q0_6,owt_q0_7,owt_q0_8,owt_q0_9,chla_q0_1,chla_q0_2,chla_q0_3,chla_q0_4,chla_q0_5,chla_q0_6,chla_q0_7,chla_q0_8,chla_q0_9,tsi_q0_1,tsi_q0_2,tsi_q0_3,tsi_q0_4,tsi_q0_5,tsi_q0_6,tsi_q0_7,tsi_q0_8,tsi_q0_9,tsm_q0_1,tsm_q0_2,tsm_q0_3,tsm_q0_4,tsm_q0_5,tsm_q0_6,tsm_q0_7,tsm_q0_8,tsm_q0_9,st_max_q0_1,st_max_q0_2,st_max_q0_3,st_max_q0_4,st_max_q0_5,st_max_q0_6,st_max_q0_7,st_max_q0_8,st_max_q0_9,st_median_q0_1,st_median_q0_2,st_median_q0_3,st_median_q0_4,st_median_q0_5,st_median_q0_6,st_median_q0_7,st_median_q0_8,st_median_q0_9,st_min_q0_1,st_min_q0_2,st_min_q0_3,st_min_q0_4,st_min_q0_5,st_min_q0_6,st_min_q0_7,st_min_q0_8,st_min_q0_9,fai_cover,ndvi_cover\n"
+
+    # Perform the query
+    query = water_quality_summary_query(wb_id, start_date, end_date)
+
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            async for wq_observation in cursor.stream(query):
+                # TODO - any changes to the query above need to be reflected here
+                obs_date, obs_hue_q0_1, obs_hue_q0_2, obs_hue_q0_3, obs_hue_q0_4, obs_hue_q0_5, obs_hue_q0_6, obs_hue_q0_7, obs_hue_q0_8, obs_hue_q0_9, obs_owt_q0_1, obs_owt_q0_2, obs_owt_q0_3, obs_owt_q0_4, obs_owt_q0_5, obs_owt_q0_6, obs_owt_q0_7, obs_owt_q0_8, obs_owt_q0_9, obs_chla_q0_1, obs_chla_q0_2, obs_chla_q0_3, obs_chla_q0_4, obs_chla_q0_5, obs_chla_q0_6, obs_chla_q0_7, obs_chla_q0_8, obs_chla_q0_9, obs_tsi_q0_1, obs_tsi_q0_2, obs_tsi_q0_3, obs_tsi_q0_4, obs_tsi_q0_5, obs_tsi_q0_6, obs_tsi_q0_7, obs_tsi_q0_8, obs_tsi_q0_9, obs_tsm_q0_1, obs_tsm_q0_2, obs_tsm_q0_3, obs_tsm_q0_4, obs_tsm_q0_5, obs_tsm_q0_6, obs_tsm_q0_7, obs_tsm_q0_8, obs_tsm_q0_9, obs_st_max_q0_1, obs_st_max_q0_2, obs_st_max_q0_3, obs_st_max_q0_4, obs_st_max_q0_5, obs_st_max_q0_6, obs_st_max_q0_7, obs_st_max_q0_8, obs_st_max_q0_9, obs_st_median_q0_1, obs_st_median_q0_2, obs_st_median_q0_3, obs_st_median_q0_4, obs_st_median_q0_5, obs_st_median_q0_6, obs_st_median_q0_7, obs_st_median_q0_8, obs_st_median_q0_9, obs_st_min_q0_1, obs_st_min_q0_2, obs_st_min_q0_3, obs_st_min_q0_4, obs_st_min_q0_5, obs_st_min_q0_6, obs_st_min_q0_7, obs_st_min_q0_8, obs_st_min_q0_9, obs_fai_cover, obs_ndvi_cover = wq_observation
+                csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_hue_q0_1},{obs_hue_q0_2},{obs_hue_q0_3},{obs_hue_q0_4},{obs_hue_q0_5},{obs_hue_q0_6},{obs_hue_q0_7},{obs_hue_q0_8},{obs_hue_q0_9},{obs_owt_q0_1},{obs_owt_q0_2},{obs_owt_q0_3},{obs_owt_q0_4},{obs_owt_q0_5},{obs_owt_q0_6},{obs_owt_q0_7},{obs_owt_q0_8},{obs_owt_q0_9},{obs_chla_q0_1},{obs_chla_q0_2},{obs_chla_q0_3},{obs_chla_q0_4},{obs_chla_q0_5},{obs_chla_q0_6},{obs_chla_q0_7},{obs_chla_q0_8},{obs_chla_q0_9},{obs_tsi_q0_1},{obs_tsi_q0_2},{obs_tsi_q0_3},{obs_tsi_q0_4},{obs_tsi_q0_5},{obs_tsi_q0_6},{obs_tsi_q0_7},{obs_tsi_q0_8},{obs_tsi_q0_9},{obs_tsm_q0_1},{obs_tsm_q0_2},{obs_tsm_q0_3},{obs_tsm_q0_4},{obs_tsm_q0_5},{obs_tsm_q0_6},{obs_tsm_q0_7},{obs_tsm_q0_8},{obs_tsm_q0_9},{obs_st_max_q0_1},{obs_st_max_q0_2},{obs_st_max_q0_3},{obs_st_max_q0_4},{obs_st_max_q0_5},{obs_st_max_q0_6},{obs_st_max_q0_7},{obs_st_max_q0_8},{obs_st_max_q0_9},{obs_st_median_q0_1},{obs_st_median_q0_2},{obs_st_median_q0_3},{obs_st_median_q0_4},{obs_st_median_q0_5},{obs_st_median_q0_6},{obs_st_median_q0_7},{obs_st_median_q0_8},{obs_st_median_q0_9},{obs_st_min_q0_1},{obs_st_min_q0_2},{obs_st_min_q0_3},{obs_st_min_q0_4},{obs_st_min_q0_5},{obs_st_min_q0_6},{obs_st_min_q0_7},{obs_st_min_q0_8},{obs_st_min_q0_9},{obs_fai_cover},{obs_ndvi_cover}\n"
+                yield csv_line
+
+
+@app.get("/waterbody/{wb_id}/water_quality_summaries/csv")
+async def get_waterbody_water_quality_summaries_csv(
+        request: Request,
+        wb_id: int,
+        start_date: date = date.min,
+        end_date: date = date.max
+    ) -> StreamingResponse:
+    """
+    Returns the water body water quality summaries over time in a CSV format
+    """
+    # First we do a quick check if the waterbody exists, and if not send
+    # a 404 response. If it does exist then run the query to get the
+    # waterbody observations. This allows the client to determine if the
+    # waterbody exists and has no data (in the query date range), or it
+    # doesn't exist at all.
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT wb_id "
+                "FROM waterbodies_historical_extent "
+                f"WHERE wb_id={wb_id}"
+            )
+            waterbody = await cur.fetchone()
+            if waterbody is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Waterbody not found"
+                )
+
+            # Stream the reponse data, this means we don't need to keep a full copy
+            # of the water quality summaries in memeory, and we can start writing the
+            # response as soon as the first row is read from the DB
+            return StreamingResponse(
+                query_water_quality_summaries(request, wb_id, start_date, end_date),
+                media_type='text/csv'
+            )
 
 
 async def query_waterbody_observations(
