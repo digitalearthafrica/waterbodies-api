@@ -87,3 +87,103 @@ def waterbody_observations_query(wb_id: int, start_date: date, end_date: date) -
         SELECT * from filtered_stats ORDER BY date
     """
     return query
+
+
+from datetime import date
+WQ_COLUMNS = [
+ 'date',
+ 'hue_q0_1',
+ 'hue_q0_2',
+ 'hue_q0_3',
+ 'hue_q0_4',
+ 'hue_q0_5',
+ 'hue_q0_6',
+ 'hue_q0_7',
+ 'hue_q0_8',
+ 'hue_q0_9',
+ 'owt_q0_1',
+ 'owt_q0_2',
+ 'owt_q0_3',
+ 'owt_q0_4',
+ 'owt_q0_5',
+ 'owt_q0_6',
+ 'owt_q0_7',
+ 'owt_q0_8',
+ 'owt_q0_9',
+ 'chla_q0_1',
+ 'chla_q0_2',
+ 'chla_q0_3',
+ 'chla_q0_4',
+ 'chla_q0_5',
+ 'chla_q0_6',
+ 'chla_q0_7',
+ 'chla_q0_8',
+ 'chla_q0_9',
+ 'tsi_q0_1',
+ 'tsi_q0_2',
+ 'tsi_q0_3',
+ 'tsi_q0_4',
+ 'tsi_q0_5',
+ 'tsi_q0_6',
+ 'tsi_q0_7',
+ 'tsi_q0_8',
+ 'tsi_q0_9',
+ 'tsm_q0_1',
+ 'tsm_q0_2',
+ 'tsm_q0_3',
+ 'tsm_q0_4',
+ 'tsm_q0_5',
+ 'tsm_q0_6',
+ 'tsm_q0_7',
+ 'tsm_q0_8',
+ 'tsm_q0_9',
+ 'st_max_q0_1',
+ 'st_max_q0_2',
+ 'st_max_q0_3',
+ 'st_max_q0_4',
+ 'st_max_q0_5',
+ 'st_max_q0_6',
+ 'st_max_q0_7',
+ 'st_max_q0_8',
+ 'st_max_q0_9',
+ 'st_median_q0_1',
+ 'st_median_q0_2',
+ 'st_median_q0_3',
+ 'st_median_q0_4',
+ 'st_median_q0_5',
+ 'st_median_q0_6',
+ 'st_median_q0_7',
+ 'st_median_q0_8',
+ 'st_median_q0_9',
+ 'st_min_q0_1',
+ 'st_min_q0_2',
+ 'st_min_q0_3',
+ 'st_min_q0_4',
+ 'st_min_q0_5',
+ 'st_min_q0_6',
+ 'st_min_q0_7',
+ 'st_min_q0_8',
+ 'st_min_q0_9',
+ 'fai_cover',
+ 'ndvi_cover']
+
+def water_quality_summary_query(wb_id: int, start_date: date, end_date: date):
+
+    query = f"""
+    WITH 
+    uids_from_wb_id AS (
+        SELECT uid
+        FROM waterbodies_historical_extent
+        WHERE wb_id = {wb_id}
+    ), 
+    wb AS (
+        SELECT uid
+        FROM waterbodies_historical_extent
+        WHERE uid = (SELECT uid FROM uids_from_wb_id LIMIT 1)
+    )
+    SELECT {', '.join(WQ_COLUMNS)}                                       
+    FROM waterbodies_water_quality as wq 
+    INNER JOIN wb on wq.uid = wb.uid 
+    WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' ORDER BY date
+    """
+    return query
