@@ -20,7 +20,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
+      with:
+        fetch-tags: true 
+        
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
@@ -30,7 +32,7 @@ jobs:
     - name: Get Git release version
       id: get_git_release
       run: |
-        git fetch --tags
+        git fetch --tags --force
         GIT_RELEASE_VERSION=$(git tag --sort version:refname | tail -1)
         if [ "${GIT_RELEASE_VERSION}" == "" ] ; then
           GIT_RELEASE_VERSION="v0.0.1"
