@@ -203,7 +203,12 @@ def waterbody_water_quality_maps_query(wb_id: int, start_date: date, end_date: d
         FROM waterbodies_historical_extent
         WHERE uid = (SELECT uid FROM uids_from_wb_id LIMIT 1)
     )
-    SELECT date, tsi_q0_5, tsm_q0_5, st_median_q0_5, fai_cover                         
+    SELECT 
+        date, 
+        tsi_q0_5 AS median_tsi, 
+        tsm_q0_5 AS median_tsm, 
+        st_median_q0_5 as median_surface_temperature, 
+        fai_cover                         
     FROM waterbodies_water_quality as wq 
     INNER JOIN wb on wq.uid = wb.uid 
     WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' ORDER BY date
