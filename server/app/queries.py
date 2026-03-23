@@ -170,62 +170,67 @@ WQ_COLUMNS = [
 
 def waterbody_water_quality_summary_query(wb_id: int, start_date: date, end_date: date):
 
+    columns = ", ".join(f"wq.{col}" for col in WQ_COLUMNS)
+
     query = f"""
-    WITH 
-    uids_from_wb_id AS (
+    SELECT wq.date, {columns}                       
+    FROM waterbodies_water_quality AS wq 
+    WHERE wq.uid = (
         SELECT uid
         FROM waterbodies_historical_extent
         WHERE wb_id = {wb_id}
-    ), 
-    wb AS (
-        SELECT uid
-        FROM waterbodies_historical_extent
-        WHERE uid = (SELECT uid FROM uids_from_wb_id LIMIT 1)
+        LIMIT 1
     )
-    SELECT date, {", ".join(WQ_COLUMNS)}                                       
-    FROM waterbodies_water_quality as wq 
-    INNER JOIN wb on wq.uid = wb.uid 
-    WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' ORDER BY date
+    AND wq.date BETWEEN '{start_date}' AND '{end_date}' 
+    ORDER BY wq.date
     """
     return query
 
 
 def waterbody_water_quality_maps_query(wb_id: int, start_date: date, end_date: date):
     query = f"""
-    WITH 
-    uids_from_wb_id AS (
+    SELECT 
+        wq.date, 
+        wq.tsi_q0_5 AS median_tsi, 
+        wq.tsm_q0_5 AS median_tsm, 
+        wq.st_median_q0_5 AS median_surface_temperature, 
+        wq.fai_cover                         
+    FROM waterbodies_water_quality AS wq 
+    WHERE wq.uid = (
         SELECT uid
         FROM waterbodies_historical_extent
         WHERE wb_id = {wb_id}
-    ), 
-    wb AS (
-        SELECT uid
-        FROM waterbodies_historical_extent
-        WHERE uid = (SELECT uid FROM uids_from_wb_id LIMIT 1)
+        LIMIT 1
     )
-    SELECT 
-        date, 
-        tsi_q0_5 AS median_tsi, 
-        tsm_q0_5 AS median_tsm, 
-        st_median_q0_5 as median_surface_temperature, 
-        fai_cover                         
-    FROM waterbodies_water_quality as wq 
-    INNER JOIN wb on wq.uid = wb.uid 
-    WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' ORDER BY date
+    AND wq.date BETWEEN '{start_date}' AND '{end_date}' 
+    ORDER BY wq.date
     """
     return query
 
 
-def all_waterbodies_water_quality_summaries(
-    variables: list[str], start_date: date, end_date: date
-):
-    for variable in variables:
-        assert variable in WQ_COLUMNS
+def waterbody_water_quality_ranking_query(wb_id: int):
+    required_columns = [
+        "fai_cover_percentile",
+        "ndvi_cover_percentile",
+        "hue_q0_5_percentile",
+        "owt_q0_5_percentile",
+        "chla_q0_5_percentile",
+        "tsi_q0_5_percentile",
+        "tsm_q0_5_percentile",
+        "st_max_q0_5_percentile",
+        "st_median_q0_5_percentile",
+        "st_min_q0_5_percentile",
+    ]
+    columns = ", ".join(f"wqp.{col}" for col in required_columns)
 
     query = f"""
-    SELECT uid, date, {", ".join(variables)}                    
-    FROM waterbodies_water_quality as wq 
-    INNER JOIN wb on wq.uid = wb.uid 
-    WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' ORDER BY date
+    SELECT {columns}                       
+    FROM waterbodies_water_quality_percentiles AS wqp 
+    WHERE wqp.uid = (
+        SELECT uid
+        FROM waterbodies_historical_extent
+        WHERE wb_id = {wb_id}
+        LIMIT 1
+    )
     """
     return query

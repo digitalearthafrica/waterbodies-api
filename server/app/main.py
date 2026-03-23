@@ -11,6 +11,7 @@ from app.db import lifespan
 from app.queries import (
     waterbody_observations_query,
     waterbody_water_quality_maps_query,
+    waterbody_water_quality_ranking_query,
     waterbody_water_quality_summary_query,
 )
 
@@ -350,5 +351,69 @@ async def get_waterbody_water_quality_maps_csv(
                 query_water_quality_summaries_for_maps(
                     request, wb_id, start_date, end_date
                 ),
+                media_type="text/csv",
+            )
+
+
+async def query_water_quality_rankings(
+    request: Request, wb_id: int
+) -> AsyncGenerator[str, None]:
+    """Async generator that yields a string (formatted as a CSV line) for each
+    row returned by the SQL query as the query is being run.
+    """
+    # Before running the query, yield the csv header
+    yield "fai_cover_percentile, ndvi_cover_percentile, hue_q0_5_percentile, owt_q0_5_percentile, chla_q0_5_percentile, tsi_q0_5_percentile, tsm_q0_5_percentile, st_max_q0_5_percentile, st_median_q0_5_percentile, st_min_q0_5_percentile\n"
+
+    # Perform the query
+    query = waterbody_water_quality_ranking_query(wb_id)
+
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cursor:
+            async for wq_observation in cursor.stream(query):
+                # TODO - any changes to the query above need to be reflected here
+                (
+                    obs_fai_cover_percentile,
+                    obs_ndvi_cover_percentile,
+                    obs_hue_q0_5_percentile,
+                    obs_owt_q0_5_percentile,
+                    obs_chla_q0_5_percentile,
+                    obs_tsi_q0_5_percentile,
+                    obs_tsm_q0_5_percentile,
+                    obs_st_max_q0_5_percentile,
+                    obs_st_median_q0_5_percentile,
+                    obs_st_min_q0_5_percentile,
+                ) = wq_observation
+                csv_line = f"{obs_fai_cover_percentile},{obs_ndvi_cover_percentile},{obs_hue_q0_5_percentile},{obs_owt_q0_5_percentile},{obs_chla_q0_5_percentile},{obs_tsi_q0_5_percentile},{obs_tsm_q0_5_percentile},{obs_st_max_q0_5_percentile},{obs_st_median_q0_5_percentile},{obs_st_min_q0_5_percentile}\n"
+                yield csv_line
+
+
+@app.get("/waterbody/{wb_id}/water_quality_rankings/csv")
+async def get_waterbody_water_quality_rankings_csv(
+    request: Request, wb_id: int
+) -> StreamingResponse:
+    """
+    Returns the water body water quality rankings in a CSV format
+    """
+    # First we do a quick check if the waterbody exists, and if not send
+    # a 404 response. If it does exist then run the query to get the
+    # waterbody observations. This allows the client to determine if the
+    # waterbody exists and has no data (in the query date range), or it
+    # doesn't exist at all.
+    async with request.app.async_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT wb_id FROM waterbodies_historical_extent WHERE wb_id={wb_id}"
+            )
+            waterbody = await cur.fetchone()
+            if waterbody is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Waterbody not found"
+                )
+
+            # Stream the reponse data, this means we don't need to keep a full copy
+            # of the water quality summaries in memeory, and we can start writing the
+            # response as soon as the first row is read from the DB
+            return StreamingResponse(
+                query_water_quality_rankings(request, wb_id),
                 media_type="text/csv",
             )
