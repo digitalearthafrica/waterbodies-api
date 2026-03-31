@@ -189,21 +189,29 @@ def waterbody_water_quality_summary_query(wb_id: int, start_date: date, end_date
 
 def waterbody_water_quality_maps_query(wb_id: int, start_date: date, end_date: date):
     query = f"""
-    SELECT 
-        wq.date, 
-        wq.tsi_q0_5 AS median_tsi, 
-        wq.tsm_q0_5 AS median_tsm, 
-        wq.st_median_q0_5 AS median_surface_temperature, 
-        wq.fai_cover                         
-    FROM waterbodies_water_quality AS wq 
-    WHERE wq.uid = (
-        SELECT uid
+    WITH wb AS (
+        SELECT uid, area_m2 AS actual_area_m2
         FROM waterbodies_historical_extent
         WHERE wb_id = {wb_id}
         LIMIT 1
+    ),
+    wq_stats AS (
+        SELECT 
+            wq.date, 
+            wq.tsi_q0_5 AS median_tsi, 
+            wq.tsm_q0_5 AS median_tsm, 
+            wq.st_median_q0_5 AS median_surface_temperature, 
+            wq.st_max_q0_5 AS max_surface_temperature,
+            wq.st_min_q0_5 AS min_surface_temperature,
+            wq.fai_cover
+        FROM waterbodies_water_quality AS wq 
+        INNER JOIN wb ON wq.uid = wb.uid
+        WHERE wq.date BETWEEN '{start_date}' AND '{end_date}'
     )
-    AND wq.date BETWEEN '{start_date}' AND '{end_date}' 
-    ORDER BY wq.date
+    SELECT 
+        wq.*
+    FROM wq_stats AS wq
+    ORDER BY wq.date;
     """
     return query
 
