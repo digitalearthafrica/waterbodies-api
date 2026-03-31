@@ -301,7 +301,7 @@ async def query_water_quality_summaries_for_maps(
     row returned by the SQL query as the query is being run.
     """
     # Before running the query, yield the csv header
-    yield "date, Median_TSI, Median_TSM, Median_Surface_Temperature, FAI_Cover\n"
+    yield "date, Median_TSI, Median_Turbidity, Median_Surface_Temperature, FAI_Cover\n"
 
     # Perform the query
     query = waterbody_water_quality_maps_query(wb_id, start_date, end_date)
