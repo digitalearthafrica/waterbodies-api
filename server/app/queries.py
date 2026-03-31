@@ -189,23 +189,62 @@ def waterbody_water_quality_summary_query(wb_id: int, start_date: date, end_date
 
 def waterbody_water_quality_maps_query(wb_id: int, start_date: date, end_date: date):
     query = f"""
-    SELECT 
-        wq.date, 
-        wq.tsi_q0_5 AS median_tsi, 
-        wq.tsm_q0_5 AS median_tsm, 
-        wq.st_median_q0_5 AS median_surface_temperature, 
-        wq.st_max_q0_5 AS max_surface_temperature,
-        wq.st_min_q0_5 AS min_surface_temperature,
-        wq.fai_cover
-    FROM waterbodies_water_quality AS wq 
-    WHERE wq.uid = (
-        SELECT uid
+    WITH wb AS (
+        SELECT uid, area_m2 AS actual_area_m2
         FROM waterbodies_historical_extent
         WHERE wb_id = {wb_id}
         LIMIT 1
+    ),
+    date_bounds AS (
+        SELECT 
+            MIN(EXTRACT(YEAR FROM wq.date)) AS start_year, 
+            MAX(EXTRACT(YEAR FROM wq.date)) AS end_year 
+        FROM waterbodies_water_quality AS wq
+        INNER JOIN wb ON wq.uid = wb.uid 
+        WHERE wq.date BETWEEN '{start_date}' AND '{end_date}' 
+    ),
+    wbo AS (
+        SELECT wo.date, wo.area_wet_m2, wb.actual_area_m2
+        FROM waterbodies_observations AS wo 
+        INNER JOIN wb ON wo.uid = wb.uid
+        CROSS JOIN date_bounds
+        WHERE EXTRACT(YEAR FROM wo.date) BETWEEN date_bounds.start_year AND date_bounds.end_year
+    ),
+    wetness_stats_daily AS (
+        SELECT 
+            date, 
+            SUM(area_wet_m2) AS daily_wet_m2, 
+            actual_area_m2 
+        FROM wbo 
+        GROUP BY date, actual_area_m2
+    ),
+    avg_wetness_yearly AS (
+        SELECT 
+            EXTRACT(YEAR FROM date) AS obs_year,
+            (AVG(daily_wet_m2) / actual_area_m2) * 100 AS annual_percent_wet
+        FROM wetness_stats_daily
+        GROUP BY EXTRACT(YEAR FROM date), actual_area_m2
+    ),
+    wq_stats AS (
+        SELECT 
+            wq.date, 
+            wq.tsi_q0_5 AS median_tsi, 
+            wq.tsm_q0_5 AS median_tsm, 
+            wq.st_median_q0_5 AS median_surface_temperature, 
+            wq.st_max_q0_5 AS max_surface_temperature,
+            wq.st_min_q0_5 AS min_surface_temperature,
+            wq.fai_cover
+        FROM waterbodies_water_quality AS wq 
+        INNER JOIN wb ON wq.uid = wb.uid
+        WHERE wq.date BETWEEN '{start_date}' AND '{end_date}'
     )
-    AND wq.date BETWEEN '{start_date}' AND '{end_date}' 
-    ORDER BY wq.date
+    SELECT 
+        wq.*, 
+        aw.annual_percent_wet
+    FROM wq_stats AS wq
+    INNER JOIN avg_wetness_yearly AS aw
+        ON EXTRACT(YEAR FROM wq.date) = aw.obs_year
+    ORDER BY wq.date;
     """
     return query
 
