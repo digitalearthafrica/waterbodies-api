@@ -301,7 +301,7 @@ async def query_water_quality_summaries_for_maps(
     row returned by the SQL query as the query is being run.
     """
     # Before running the query, yield the csv header
-    yield "date, median_tsi, median_tsm, median_surface_temperature, fai_cover\n"
+    yield "date, Median_TSI, Median_Turbidity, Median_Surface_Temperature, Max_Surface_Temperature, Min_Surface_Temperature, FAI_Cover\n"
 
     # Perform the query
     query = waterbody_water_quality_maps_query(wb_id, start_date, end_date)
@@ -315,9 +315,11 @@ async def query_water_quality_summaries_for_maps(
                     obs_tsi_q0_5,
                     obs_tsm_q0_5,
                     obs_st_median_q0_5,
+                    obs_st_max_q0_5,
+                    obs_st_min_q0_5,
                     obs_fai_cover,
                 ) = wq_observation
-                csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_tsi_q0_5},{obs_tsm_q0_5},{obs_st_median_q0_5},{obs_fai_cover} \n"
+                csv_line = f"{str(obs_date.strftime('%Y-%m-%d'))},{obs_tsi_q0_5},{obs_tsm_q0_5},{obs_st_median_q0_5},{obs_st_max_q0_5},{obs_st_min_q0_5},{obs_fai_cover}\n"
                 yield csv_line
 
 
